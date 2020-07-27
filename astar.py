@@ -6,6 +6,9 @@ WIDTH = 800
 WIN = pygame.display.set_mode((WIDTH, WIDTH))
 pygame.display.set_caption("A* Path Finding Algorithm")
 
+DISTANCE = 1
+ROWS = 12
+
 RED = (255, 0 ,0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
@@ -88,7 +91,7 @@ class Node:
     def __lt__(self, other):
         return False
 
-def h(p1, p2):
+def manhattan_distance(p1, p2):
     x1, y1 = p1
     x2, y2 = p2
     return abs(x1 - x2) + abs(y1 - y2)
@@ -99,7 +102,7 @@ def reconstruct_path(came_from, current, draw):
         current.make_path()
         draw()
 
-def algorithm(draw, grid, start, end):
+def a_star(draw, grid, start, end):
     count = 0
     open_set = PriorityQueue()
     open_set.put((0, count, start))
@@ -108,7 +111,7 @@ def algorithm(draw, grid, start, end):
     g_score[start] = 0
 
     f_score = {node: float("inf") for row in grid for node in row}
-    f_score[start] = h(start.get_pos(), end.get_pos())
+    f_score[start] = manhattan_distance(start.get_pos(), end.get_pos())
 
     open_set_hash = {start}
 
@@ -127,12 +130,12 @@ def algorithm(draw, grid, start, end):
             return True
         
         for neighbor in current.neighbors:
-            temp_g_score = g_score[current] + 1
+            temp_g_score = g_score[current] + DISTANCE
 
             if temp_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = temp_g_score
-                f_score[neighbor] = temp_g_score + h(neighbor.get_pos(), end.get_pos())
+                f_score[neighbor] = temp_g_score + manhattan_distance(neighbor.get_pos(), end.get_pos())
                 if neighbor not in open_set_hash:
                     count += 1
                     open_set.put((f_score[neighbor], count, neighbor))
@@ -144,6 +147,48 @@ def algorithm(draw, grid, start, end):
             current.make_closed()
     return False
     
+def dijkstra(draw, grid, start, end):
+    count = 0
+    pq = PriorityQueue()
+    pq.put((0, count, start))
+    prev = {}
+    dist = {node: float("inf") for row in grid for node in row}
+    dist[start] = 0
+
+    pq_hash = {start}
+
+    while not pq.empty():
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+
+        current = pq.get()[2]
+        pq_hash.remove(current)
+
+        if current == end:
+            reconstruct_path(prev, end, draw)
+            start.make_start()
+            end.make_end()
+            return True
+
+        for neighbor in current.neighbors:
+            alt_dist = dist[current] + DISTANCE;
+            if alt_dist < dist[neighbor]:
+                dist[neighbor] = alt_dist
+                prev[neighbor] = current
+                if neighbor not in pq_hash:
+                    count += 1
+                    pq.put((dist[neighbor], count, neighbor))
+                    pq_hash.add(neighbor)
+                    neighbor.make_open()
+                
+        draw()
+
+        if current != start:
+           current.make_closed()
+
+    return False
 
 def make_grid(rows, width):
     grid = []
@@ -153,6 +198,14 @@ def make_grid(rows, width):
         for j in range(rows):
             node = Node(i, j, gap, rows)
             grid[i].append(node)
+    
+    return grid
+
+def reset_searched_nodes(grid):
+    for row in grid:
+        for node in row:
+            if not ( node.is_start() or node.is_end() or node.is_barrier() ):
+                node.reset()
     
     return grid
 
@@ -182,8 +235,14 @@ def get_clicked_pos(pos, rows, width):
 
     return row, col
 
+def update_all_neighbors(grid):
+    for row in grid:
+        for node in row:
+            node.update_neighbors(grid)
+    
+    return grid
+
 def main(win, width):
-    ROWS = 50
     grid = make_grid(ROWS, width)
 
     start = None
@@ -223,17 +282,25 @@ def main(win, width):
                     end = None
 
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and start and end:
-                    for row in grid:
-                        for node in row:
-                            node.update_neighbors(grid)
-
-                    algorithm(lambda: draw(win, grid, ROWS, width), grid, start, end)
-
                 if event.key == pygame.K_c:
                     start = None
                     end = None
                     grid = make_grid(ROWS, width)  
+
+                elif event.key == pygame.K_r:
+                    grid = reset_searched_nodes(grid)
+                    
+                elif event.key == pygame.K_a and start and end:
+                    grid = update_all_neighbors(grid)
+
+                    a_star(lambda: draw(win, grid, ROWS, width), grid, start, end)
+
+                elif event.key == pygame.K_d and start and end:
+                    grid = update_all_neighbors(grid)
+
+                    dijkstra(lambda: draw(win, grid, ROWS, width), grid, start, end)
+
+                
 
     pygame.quit()
 
