@@ -1,11 +1,12 @@
 import pygame
 import math
 from queue import PriorityQueue
+from queue import Queue
 
 WIDTH = 800
 
 DISTANCE = 1
-ROWS = 5
+ROWS = 20
 
 RED = (255, 117, 109)
 GREEN = (133, 222, 119)
@@ -114,8 +115,8 @@ def manhattan_distance(p1, p2):
     x2, y2 = p2
     return abs(x1 - x2) + abs(y1 - y2)
 
-def reconstruct_path(came_from, current, draw):
-    while current in came_from:
+def reconstruct_path(came_from, current, draw, start = None):
+    while current in came_from and not current is start:
         current = came_from[current]
         current.make_path()
         draw()
@@ -190,7 +191,7 @@ def dijkstra(draw, grid, start, end):
             return True
 
         for neighbor in current.neighbors:
-            alt_dist = dist[current] + DISTANCE;
+            alt_dist = dist[current] + DISTANCE
             if alt_dist < dist[neighbor]:
                 dist[neighbor] = alt_dist
                 prev[neighbor] = current
@@ -206,6 +207,60 @@ def dijkstra(draw, grid, start, end):
            current.make_closed()
 
     return False
+
+def breadth_first_search(draw, start, end):
+    q = Queue()
+    current = start
+    q.put((current, {}))
+    while not q.empty() or current == end:
+        current, path = q.get()
+
+        if not current == start:
+            current.make_closed()
+
+        if current == end:
+            reconstruct_path(path, end, draw, start)
+            start.make_start()
+            end.make_end()
+            return True
+
+        for neighbor in current.neighbors:
+            if not (neighbor.is_closed() or neighbor.is_open()):
+                neighbor.make_open()
+                path[neighbor] = current
+                q.put((neighbor, path))
+
+        draw()
+    return False
+
+
+
+def depth_first_search(draw, start, end):
+    q = Queue()
+    current = start
+    q.put((current, {}))
+    while not q.empty() or current == end:
+        current, path = q.get()
+
+        if not current == start:
+            current.make_closed()
+
+        if current == end:
+            reconstruct_path(path, end, draw, start)
+            start.make_start()
+            end.make_end()
+            return True
+
+        for neighbor in current.neighbors:
+            if not (neighbor.is_closed() or neighbor.is_open()):
+                neighbor.make_open()
+                path[neighbor] = current
+                q.put((neighbor, path))
+
+        draw()
+    return False
+
+
 
 def make_grid(rows, width):
     grid = []
@@ -306,6 +361,10 @@ def main():
                 if event.key == pygame.K_d and start and end:
                     update_all_neighbors(grid, diagonal)
                     dijkstra(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
+
+                if event.key == pygame.K_b and start and end:
+                    update_all_neighbors(grid, diagonal)
+                    breadth_first_search(lambda: draw(WIN, grid, ROWS, WIDTH), start, end)
 
                 if event.key == pygame.K_n:
                     diagonal = not diagonal
