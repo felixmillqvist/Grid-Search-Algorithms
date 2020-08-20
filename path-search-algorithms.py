@@ -2,6 +2,7 @@ import pygame
 import math
 from queue import PriorityQueue
 from queue import Queue
+from collections import deque
 
 WIDTH = 800
 
@@ -212,7 +213,7 @@ def breadth_first_search(draw, start, end):
     q = Queue()
     current = start
     q.put((current, {}))
-    while not q.empty() or current == end:
+    while not q.empty():
         current, path = q.get()
 
         if not current == start:
@@ -236,11 +237,11 @@ def breadth_first_search(draw, start, end):
 
 
 def depth_first_search(draw, start, end):
-    q = Queue()
+    q = deque()
     current = start
-    q.put((current, {}))
-    while not q.empty() or current == end:
-        current, path = q.get()
+    q.append((current, {}))
+    while q:
+        current, path = q.pop()
 
         if not current == start:
             current.make_closed()
@@ -255,7 +256,7 @@ def depth_first_search(draw, start, end):
             if not (neighbor.is_closed() or neighbor.is_open()):
                 neighbor.make_open()
                 path[neighbor] = current
-                q.put((neighbor, path))
+                q.append((neighbor, path))
 
         draw()
     return False
@@ -365,6 +366,11 @@ def main():
                 if event.key == pygame.K_b and start and end:
                     update_all_neighbors(grid, diagonal)
                     breadth_first_search(lambda: draw(WIN, grid, ROWS, WIDTH), start, end)
+
+                if event.key == pygame.K_j and start and end:
+                    update_all_neighbors(grid, diagonal)
+                    depth_first_search(lambda: draw(WIN, grid, ROWS, WIDTH), start, end)
+
 
                 if event.key == pygame.K_n:
                     diagonal = not diagonal
