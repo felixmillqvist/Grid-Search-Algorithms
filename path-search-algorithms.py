@@ -3,6 +3,8 @@ import math
 from queue import PriorityQueue
 from queue import Queue
 from collections import deque
+import pickle
+import os
 
 WIDTH = 800
 
@@ -79,7 +81,7 @@ class Node:
         pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.width))
     
     def update_neighbors(self, grid, diagonal):
-        self.neighbours = []
+        self.neighbors = []
         if self.row < self.total_rows - 1 and not grid[self.row + 1][self.col].is_barrier(): # DOWN
             self.neighbors.append(grid[self.row + 1][self.col])
 
@@ -320,6 +322,7 @@ def main():
     end = None
     run = True
     diagonal = False
+    grid_index = 0
 
     while run:
         draw(WIN, grid, ROWS,  WIDTH)
@@ -356,21 +359,24 @@ def main():
 
             if event.type == pygame.KEYDOWN: 
                 if event.key == pygame.K_a and start and end:
+                    reset_searched_nodes(grid)
                     update_all_neighbors(grid, diagonal)
                     a_star(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
 
                 if event.key == pygame.K_d and start and end:
+                    reset_searched_nodes(grid)
                     update_all_neighbors(grid, diagonal)
                     dijkstra(lambda: draw(WIN, grid, ROWS, WIDTH), grid, start, end)
 
                 if event.key == pygame.K_b and start and end:
+                    reset_searched_nodes(grid)
                     update_all_neighbors(grid, diagonal)
                     breadth_first_search(lambda: draw(WIN, grid, ROWS, WIDTH), start, end)
 
                 if event.key == pygame.K_j and start and end:
+                    reset_searched_nodes(grid)
                     update_all_neighbors(grid, diagonal)
                     depth_first_search(lambda: draw(WIN, grid, ROWS, WIDTH), start, end)
-
 
                 if event.key == pygame.K_n:
                     diagonal = not diagonal
@@ -382,6 +388,35 @@ def main():
 
                 if event.key == pygame.K_r:
                     reset_searched_nodes(grid)
+
+                if event.key == pygame.K_s:
+                    reset_searched_nodes(grid)
+
+                    file_index = 1
+                    file_name = F"example_grid_{file_index}.pkl"
+                    while os.path.isfile(file_name):
+                        file_name = F"example_grid_{file_index}.pkl"
+                        file_index += 1
+                    with open(file_name, 'wb') as pickle_file:
+                        pickle.dump(grid, pickle_file)
+
+                if event.key == pygame.K_g:
+                    grid_index += 1
+                    file_name = F"example_grid_{grid_index}.pkl"
+                    if  not os.path.isfile(file_name):
+                        grid_index = 1
+                    file_name = F"example_grid_{grid_index}.pkl"
+                    if  os.path.isfile(file_name):
+                        with open(file_name, 'rb') as pickle_file:
+                            grid = pickle.load(pickle_file)
+                            for row in grid:
+                                for node in row:
+                                    if node.is_start():
+                                        start = node
+                                    elif node.is_end():
+                                        end = node
+
+
                     
                 
 
