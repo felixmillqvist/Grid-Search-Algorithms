@@ -1,11 +1,13 @@
 import pygame
+'''
 import math
 from queue import PriorityQueue
 from queue import Queue
-from collections import deque
+from collections import deque 
+'''
 import pickle
 import os
-
+from algorithms import *
 WIDTH = 800
 
 DISTANCE = 1
@@ -41,6 +43,9 @@ class Node:
     def get_pos(self):
         return self.row, self.col
 
+    def get_neighbors(self):
+        return self.neighbors
+
     def is_closed(self):
         return self.color == RED
 
@@ -55,6 +60,9 @@ class Node:
     
     def is_end(self):
         return self.color == TURQUOISE
+
+    def is_clear(self):
+        return self.color == BLACK
     
     def reset(self):
         self.color = BLACK
@@ -113,158 +121,6 @@ class Node:
     def __lt__(self, other):
         return False
 
-def manhattan_distance(p1, p2):
-    x1, y1 = p1
-    x2, y2 = p2
-    return abs(x1 - x2) + abs(y1 - y2)
-
-def reconstruct_path(came_from, current, draw, start = None):
-    while current in came_from and not current is start:
-        current = came_from[current]
-        current.make_path()
-        draw()
-
-def a_star(draw, grid, start, end):
-    count = 0
-    open_set = PriorityQueue()
-    open_set.put((0, count, start))
-    came_from = {}
-    g_score = {node: float("inf") for row in grid for node in row}
-    g_score[start] = 0
-
-    f_score = {node: float("inf") for row in grid for node in row}
-    f_score[start] = manhattan_distance(start.get_pos(), end.get_pos())
-
-    open_set_hash = {start}
-
-    while not open_set.empty():
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-        
-        current = open_set.get()[2]
-        open_set_hash.remove(current)
-
-        if current == end:
-            reconstruct_path(came_from, end, draw)
-            start.make_start()
-            end.make_end()
-            return True
-        
-        for neighbor in current.neighbors:
-            temp_g_score = g_score[current] + DISTANCE
-            if temp_g_score < g_score[neighbor]:
-                came_from[neighbor] = current
-                g_score[neighbor] = temp_g_score
-                f_score[neighbor] = temp_g_score + manhattan_distance(neighbor.get_pos(), end.get_pos())
-                if neighbor not in open_set_hash:
-                    count += 1
-                    open_set.put((f_score[neighbor], count, neighbor))
-                    open_set_hash.add(neighbor)
-                    neighbor.make_open()
-        draw()
-
-        if current != start:
-            current.make_closed()
-    return False
-    
-def dijkstra(draw, grid, start, end):
-    count = 0
-    pq = PriorityQueue()
-    pq.put((0, count, start))
-    prev = {}
-    dist = {node: float("inf") for row in grid for node in row}
-    dist[start] = 0
-
-    pq_hash = {start}
-
-    while not pq.empty():
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-
-        current = pq.get()[2]
-        pq_hash.remove(current)
-
-        if current == end:
-            reconstruct_path(prev, end, draw)
-            start.make_start()
-            end.make_end()
-            return True
-
-        for neighbor in current.neighbors:
-            alt_dist = dist[current] + DISTANCE
-            if alt_dist < dist[neighbor]:
-                dist[neighbor] = alt_dist
-                prev[neighbor] = current
-                if neighbor not in pq_hash:
-                    count += 1
-                    pq.put((dist[neighbor], count, neighbor))
-                    pq_hash.add(neighbor)
-                    neighbor.make_open()
-                
-        draw()
-
-        if current != start:
-           current.make_closed()
-
-    return False
-
-def breadth_first_search(draw, start, end):
-    q = Queue()
-    current = start
-    q.put((current, {}))
-    while not q.empty():
-        current, path = q.get()
-
-        if not current == start:
-            current.make_closed()
-
-        if current == end:
-            reconstruct_path(path, end, draw, start)
-            start.make_start()
-            end.make_end()
-            return True
-
-        for neighbor in current.neighbors:
-            if not (neighbor.is_closed() or neighbor.is_open()):
-                neighbor.make_open()
-                path[neighbor] = current
-                q.put((neighbor, path))
-
-        draw()
-    return False
-
-
-
-def depth_first_search(draw, start, end):
-    q = deque()
-    current = start
-    q.append((current, {}))
-    while q:
-        current, path = q.pop()
-
-        if not current == start:
-            current.make_closed()
-
-        if current == end:
-            reconstruct_path(path, end, draw, start)
-            start.make_start()
-            end.make_end()
-            return True
-
-        for neighbor in current.neighbors:
-            if not (neighbor.is_closed() or neighbor.is_open()):
-                neighbor.make_open()
-                path[neighbor] = current
-                q.append((neighbor, path))
-
-        draw()
-    return False
-
-
-
 def make_grid(rows, width):
     grid = []
     gap = width // rows
@@ -315,6 +171,44 @@ def update_all_neighbors(grid, diagonal):
         for node in row:
             node.update_neighbors(grid, diagonal)
 
+def make_tree(grid):
+    for row in grid:
+        for node in row:
+            if node.is_clear():
+                node.make_barrier()
+            elif node.is_barrier():
+                node.reset()
+
+def save_grid(grid):
+    reset_searched_nodes(grid)
+
+    file_index = 1
+    file_name = F"example_grid_{file_index}.pkl"
+    while os.path.isfile(file_name):
+        file_name = F"example_grid_{file_index}.pkl"
+        file_index += 1
+    with open(file_name, 'wb') as pickle_file:
+        pickle.dump(grid, pickle_file)
+
+def switch_grid(grid_index):
+    grid_index += 1
+    start = None
+    end = None
+    file_name = F"example_grid_{grid_index}.pkl"
+    if  not os.path.isfile(file_name):
+        grid_index = 1
+    file_name = F"example_grid_{grid_index}.pkl"
+    if  os.path.isfile(file_name):
+        with open(file_name, 'rb') as pickle_file:
+            grid = pickle.load(pickle_file)
+            for row in grid:
+                for node in row:
+                    if node.is_start():
+                        start = node
+                    elif node.is_end():
+                        end = node
+    return (grid, start, end, grid_index)
+
 def main():
     grid = make_grid(ROWS, WIDTH)
 
@@ -322,6 +216,7 @@ def main():
     end = None
     run = True
     diagonal = False
+    tree = False
     grid_index = 0
 
     while run:
@@ -335,15 +230,15 @@ def main():
                 row, col = get_clicked_pos(pos, ROWS, WIDTH)
                 node = grid[row][col]
 
-                if not start and node != end:
+                if not start and node != end and not tree:
                     start = node
                     start.make_start()
 
-                if not end and node != start:
+                if not end and node != start and not tree:
                     end = node
                     end.make_end()
 
-                if node != end and node != start:
+                if (node != end and node != start) or tree:
                     node.make_barrier()
 
             if pygame.mouse.get_pressed()[2]: # RIGHT
@@ -381,6 +276,12 @@ def main():
                 if event.key == pygame.K_n:
                     diagonal = not diagonal
 
+                if event.key == pygame.K_t:
+                    tree = not tree
+
+                if event.key == pygame.K_m:
+                    make_tree(grid)
+
                 if event.key == pygame.K_c:
                     start = None
                     end = None
@@ -389,32 +290,14 @@ def main():
                 if event.key == pygame.K_r:
                     reset_searched_nodes(grid)
 
-                if event.key == pygame.K_s:
-                    reset_searched_nodes(grid)
+                if event.key == pygame.K_q:
+                    run = False
 
-                    file_index = 1
-                    file_name = F"example_grid_{file_index}.pkl"
-                    while os.path.isfile(file_name):
-                        file_name = F"example_grid_{file_index}.pkl"
-                        file_index += 1
-                    with open(file_name, 'wb') as pickle_file:
-                        pickle.dump(grid, pickle_file)
+                if event.key == pygame.K_s:
+                    save_grid(grid)
 
                 if event.key == pygame.K_g:
-                    grid_index += 1
-                    file_name = F"example_grid_{grid_index}.pkl"
-                    if  not os.path.isfile(file_name):
-                        grid_index = 1
-                    file_name = F"example_grid_{grid_index}.pkl"
-                    if  os.path.isfile(file_name):
-                        with open(file_name, 'rb') as pickle_file:
-                            grid = pickle.load(pickle_file)
-                            for row in grid:
-                                for node in row:
-                                    if node.is_start():
-                                        start = node
-                                    elif node.is_end():
-                                        end = node
+                    grid, start, end, grid_index = switch_grid(grid_index)
 
 
                     
