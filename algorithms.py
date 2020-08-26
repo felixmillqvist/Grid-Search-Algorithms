@@ -157,7 +157,9 @@ def depth_first_search(draw, start, end):
     return False
 
 def kruskals(draw, grid):
-    pass
+    pass 
+# TODO
 
 def prims(draw, grid):
-    pass
+    pass 
+# TODO
