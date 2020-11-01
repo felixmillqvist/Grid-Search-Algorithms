@@ -1,13 +1,8 @@
 import pygame
-'''
-import math
-from queue import PriorityQueue
-from queue import Queue
-from collections import deque 
-'''
 import pickle
 import os
 from algorithms import *
+from antSystem import AntSystem
 WIDTH = 800
 
 DISTANCE = 1
@@ -51,19 +46,19 @@ class Node:
 
     def is_open(self):
         return self.color == GREEN
-    
+
     def is_barrier(self):
         return self.color == WHITE
-    
+
     def is_start(self):
         return self.color == ORANGE
-    
+
     def is_end(self):
         return self.color == TURQUOISE
 
     def is_clear(self):
         return self.color == BLACK
-    
+
     def reset(self):
         self.color = BLACK
 
@@ -72,13 +67,13 @@ class Node:
 
     def make_open(self):
         self.color = GREEN
-    
+
     def make_barrier(self):
         self.color = WHITE
-    
+
     def make_start(self):
         self.color = ORANGE
-    
+
     def make_end(self):
         self.color = TURQUOISE
 
@@ -87,7 +82,7 @@ class Node:
 
     def draw(self, win):
         pygame.draw.rect(win, self.color, (self.x, self.y, self.width, self.width))
-    
+
     def update_neighbors(self, grid, diagonal):
         self.neighbors = []
         if self.row < self.total_rows - 1 and not grid[self.row + 1][self.col].is_barrier(): # DOWN
@@ -116,7 +111,7 @@ class Node:
                 self.neighbors.append(grid[self.row - 1][self.col + 1])
 
     def reset_neighbors(self):
-        self.neighbor = []   
+        self.neighbor = []
 
     def __lt__(self, other):
         return False
@@ -129,7 +124,7 @@ def make_grid(rows, width):
         for j in range(rows):
             node = Node(i, j, gap, rows)
             grid[i].append(node)
-    
+
     return grid
 
 def reset_searched_nodes(grid):
@@ -146,16 +141,37 @@ def draw_grid(win, rows, width):
         pygame.draw.line(win, GREY, (0, i * gap), (width, i * gap))
         for j in range(rows):
             pygame.draw.line(win, GREY, (j * gap, 0), (j * gap, width))
-        
-def draw(win, grid, rows, width):
+
+def draw(win, grid, rows, width, tree=False, path=[], locs=[]):
     win.fill(BLACK)
 
     for row in grid:
         for node in row:
             node.draw(win)
-    
+            if tree and node.is_barrier():
+                pygame.draw.circle(WIN, (0,0,0), (node.x+node.width//2, node.y+node.width//2), 10)
+    if tree and len(path) > 0 and len(locs) > 0:
+        draw_path(win, grid, path, locs)
+
+
     draw_grid(win, rows, width)
     pygame.display.update()
+
+def draw_path(win, grid, path, locs):
+    n_locs = len(locs)
+    locs_ext = []
+    for edge in path:
+        locs_ext.append(locs[edge])
+    locs_ext.append(locs[path[0]])
+
+    for i in range(n_locs):
+        node1 = grid[locs_ext[i][0]][locs_ext[i][1]]
+        node2 = grid[locs_ext[i+1][0]][locs_ext[i+1][1]]
+        pos1 = (node1.x+node1.width//2, node1.y+node1.width//2)
+        pos2 = (node2.x+node2.width//2, node2.y+node2.width//2)
+
+        pygame.draw.line(win, (0,0,0), pos1, pos2, 3)
+
 
 def get_clicked_pos(pos, rows, width):
     gap = width // rows
@@ -178,6 +194,14 @@ def make_tree(grid):
                 node.make_barrier()
             elif node.is_barrier():
                 node.reset()
+
+def get_locations(grid):
+    locations = []
+    for row in grid:
+        for node in row:
+            if node.is_barrier():
+                locations.append((node.row, node.col))
+    return locations
 
 def save_grid(grid):
     reset_searched_nodes(grid)
@@ -218,9 +242,11 @@ def main():
     diagonal = False
     tree = False
     grid_index = 0
+    path = []
+    locs = []
 
     while run:
-        draw(WIN, grid, ROWS,  WIDTH)
+        draw(WIN, grid, ROWS,  WIDTH, tree, path, locs)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -252,7 +278,7 @@ def main():
                 if node == end:
                     end = None
 
-            if event.type == pygame.KEYDOWN: 
+            if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_a and start and end:
                     reset_searched_nodes(grid)
                     update_all_neighbors(grid, diagonal)
@@ -283,9 +309,14 @@ def main():
                     make_tree(grid)
 
                 if event.key == pygame.K_c:
-                    start = None
-                    end = None
-                    grid = make_grid(ROWS, WIDTH)  
+                    locs = get_locations(grid)
+                    from antSystem import GetNNPath
+                    path, path_length = GetNNPath(locs)
+
+                    for (iteration, ant, path_length, path) in AntSystem(locs):
+                        print(f'Iteration: {iteration} Ant: {ant} Length: {path_length}')
+                        draw(WIN, grid, ROWS,  WIDTH, tree, path, locs)
+
 
                 if event.key == pygame.K_r:
                     reset_searched_nodes(grid)
@@ -300,13 +331,9 @@ def main():
                     grid, start, end, grid_index = switch_grid(grid_index)
 
 
-                    
-                
+
+
 
     pygame.quit()
 
 main()
-
-
-    
-
