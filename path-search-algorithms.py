@@ -308,7 +308,7 @@ def main():
                 if event.key == pygame.K_m:
                     make_tree(grid)
 
-                if event.key == pygame.K_c:
+                if event.key == pygame.K_y:
                     locs = get_locations(grid)
                     from antSystem import GetNNPath
                     path, path_length = GetNNPath(locs)
@@ -317,6 +317,12 @@ def main():
                         print(f'Iteration: {iteration} Ant: {ant} Length: {path_length}')
                         draw(WIN, grid, ROWS,  WIDTH, tree, path, locs)
 
+                if event.key == pygame.K_c:
+                    start = None
+                    end = None
+                    path = []
+                    locs = []
+                    reset_searched_nodes(grid)
 
                 if event.key == pygame.K_r:
                     reset_searched_nodes(grid)
