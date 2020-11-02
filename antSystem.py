@@ -26,7 +26,7 @@ def AntSystem(locs):
             path = GeneratePath(pheromone_level, visibility, alpha, beta)
             path_length = GetPathLength(path, locs)
             if path_length < min_path_length:
-                min_path_length = nn_path_length
+                min_path_length = path_length
                 yield iteration, ant, path_length, path
 
             path_collection.append(path)
