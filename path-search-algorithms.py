@@ -2,7 +2,8 @@ import pygame
 import pickle
 import os
 from algorithms import *
-from antSystem import AntSystem
+from antSystem import ant_system
+from antSystem import get_nn_path
 WIDTH = 800
 
 DISTANCE = 1
@@ -135,6 +136,8 @@ def reset_searched_nodes(grid):
                 node.reset_neighbors()
 
 
+
+
 def draw_grid(win, rows, width):
     gap  = width // rows
     for i in range(rows):
@@ -207,9 +210,9 @@ def save_grid(grid):
     reset_searched_nodes(grid)
 
     file_index = 1
-    file_name = F"example_grid_{file_index}.pkl"
+    file_name = F"Grids/example_grid_{file_index}.pkl"
     while os.path.isfile(file_name):
-        file_name = F"example_grid_{file_index}.pkl"
+        file_name = F"Grids/example_grid_{file_index}.pkl"
         file_index += 1
     with open(file_name, 'wb') as pickle_file:
         pickle.dump(grid, pickle_file)
@@ -218,10 +221,10 @@ def switch_grid(grid_index):
     grid_index += 1
     start = None
     end = None
-    file_name = F"example_grid_{grid_index}.pkl"
+    file_name = F"Grids/example_grid_{grid_index}.pkl"
     if  not os.path.isfile(file_name):
         grid_index = 1
-    file_name = F"example_grid_{grid_index}.pkl"
+    file_name = F"Grids/example_grid_{grid_index}.pkl"
     if  os.path.isfile(file_name):
         with open(file_name, 'rb') as pickle_file:
             grid = pickle.load(pickle_file)
@@ -248,6 +251,7 @@ def main():
     while run:
         draw(WIN, grid, ROWS,  WIDTH, tree, path, locs)
         for event in pygame.event.get():
+
             if event.type == pygame.QUIT:
                 run = False
 
@@ -309,20 +313,25 @@ def main():
                     make_tree(grid)
 
                 if event.key == pygame.K_y:
+                    tree = True
                     locs = get_locations(grid)
-                    from antSystem import GetNNPath
-                    path, path_length = GetNNPath(locs)
+                    
+                    path, path_length = get_nn_path(locs)
 
-                    for (iteration, ant, path_length, path) in AntSystem(locs):
+                    for (iteration, ant, path_length, path) in ant_system(locs):
                         print(f'Iteration: {iteration} Ant: {ant} Length: {path_length}')
                         draw(WIN, grid, ROWS,  WIDTH, tree, path, locs)
+                    print('Done')
+                    
 
                 if event.key == pygame.K_c:
                     start = None
                     end = None
                     path = []
                     locs = []
-                    reset_searched_nodes(grid)
+                    tree = False
+                    #reset_searched_nodes(grid)
+                    grid = make_grid(ROWS, WIDTH)
 
                 if event.key == pygame.K_r:
                     reset_searched_nodes(grid)

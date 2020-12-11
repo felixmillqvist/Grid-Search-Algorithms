@@ -1,7 +1,7 @@
 from random import randint
 import numpy as np
 
-def ant_system(locs):
+def AntSystem(locs):
     n_locs = len(locs)
 
     n_ants = n_locs
@@ -9,11 +9,11 @@ def ant_system(locs):
     beta = 3.0
     rho = 0.5
 
-    nn_path, nn_path_length = get_nn_path(locs)
+    nn_path, nn_path_length = GetNNPath(locs)
     tau0 = n_ants/nn_path_length
 
-    pheromone_level = initialize_pheromone_level(n_locs, tau0)
-    visibility = get_visibility(locs)
+    pheromone_level = InitializePheromoneLevel(n_locs, tau0)
+    visibility = GetVisibility(locs)
 
     min_path_length = 100000000
 
@@ -23,8 +23,8 @@ def ant_system(locs):
         path_collection = []
         path_length_collection = []
         for ant in range(n_ants):
-            path = generate_path(pheromone_level, visibility, alpha, beta)
-            path_length = get_path_length(path, locs)
+            path = GeneratePath(pheromone_level, visibility, alpha, beta)
+            path_length = GetPathLength(path, locs)
             if path_length < min_path_length:
                 min_path_length = path_length
                 yield iteration, ant, path_length, path
@@ -32,12 +32,13 @@ def ant_system(locs):
             path_collection.append(path)
             path_length_collection.append(path_length)
 
-        delta_pheromone_level = compute_delta_pheromone_level(path_collection,
+        delta_pheromone_level = ComputeDeltaPheromoneLevels(path_collection,
                                                         path_length_collection)
-        pheromone_level = update_pheromone_level(pheromone_level,
+        pheromone_level = UpdatePheromoneLevel(pheromone_level,
                                                delta_pheromone_level, rho)
-        
-def get_nn_path(locs):
+
+
+def GetNNPath(locs):
     n_locs = len(locs)
     current_loc_index = randint(0, n_locs-1)
 
@@ -59,10 +60,10 @@ def get_nn_path(locs):
 
         current_loc_index = nn_index
         nn_path[i] = nn_index
-    nn_path_length = get_path_length(nn_path, locs)
+    nn_path_length = GetPathLength(nn_path, locs)
     return nn_path, nn_path_length
 
-def get_path_length(path, locs):
+def GetPathLength(path, locs):
     n_locs = len(locs)
 
     length = 0
@@ -75,10 +76,10 @@ def get_path_length(path, locs):
 
     return length
 
-def initialize_pheromone_level(n_locs, tau0):
+def InitializePheromoneLevel(n_locs, tau0):
     return tau0*np.ones((n_locs, n_locs))
 
-def get_visibility(locs):
+def GetVisibility(locs):
     n_locs = len(locs)
     visibility = np.zeros((n_locs, n_locs))
 
@@ -94,7 +95,7 @@ def get_visibility(locs):
 
     return visibility
 
-def generate_path(pheromone_level, visibility, alpha, beta):
+def GeneratePath(pheromone_level, visibility, alpha, beta):
     n_locs = len(pheromone_level)
     start_node = randint(0, n_locs-1)
     path = np.zeros(n_locs, dtype=int)
@@ -129,7 +130,7 @@ def GetNode(tabu, pheromone_level, visibility, alpha, beta):
     return node
 
 
-def compute_delta_pheromone_level(path_collection, path_length_collection):
+def ComputeDeltaPheromoneLevels(path_collection, path_length_collection):
     n_ants = len(path_collection)
     n_locs = len(path_collection[0])
 
@@ -145,5 +146,5 @@ def compute_delta_pheromone_level(path_collection, path_length_collection):
 
     return delta_p_l
 
-def update_pheromone_level(pheromone_level, delta_pheromone_level, rho):
+def UpdatePheromoneLevel(pheromone_level, delta_pheromone_level, rho):
     return (1-rho)*pheromone_level + delta_pheromone_level
